@@ -14,7 +14,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.databinding.DataBindingUtil
 import com.google.android.gms.common.api.ResolvableApiException
@@ -56,11 +55,6 @@ class SaveReminderFragment : BaseFragment() {
         PendingIntent.getBroadcast(requireContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
     }
 
-    override fun onStart() {
-        super.onStart()
-        checkPermissionsAndStartGeofencing()
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -95,11 +89,10 @@ class SaveReminderFragment : BaseFragment() {
 
             reminderData = ReminderDataItem(title, description, location, latitude, longitude)
 
-            if (!_viewModel.validateEnteredData(reminderData)) {
-                Toast.makeText(
-                    requireContext(), "ERROR: Invalid reminder data!!",
-                    Toast.LENGTH_LONG
-                ).show()
+            _viewModel.validateAndSaveReminder(reminderData)
+            val permissionsGranted = foregroundAndBackgroundLocationPermissionApproved()
+            if (permissionsGranted) {
+                checkDeviceLocationSettingsAndStartGeofence()
                 return@setOnClickListener
             }
         }
