@@ -1,8 +1,13 @@
 package com.udacity.project4.authentication
 
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
-import com.udacity.project4.R
+import com.firebase.ui.auth.AuthUI
+import com.firebase.ui.auth.IdpResponse
+import com.udacity.project4.databinding.ActivityAuthenticationBinding
+import com.udacity.project4.locationreminders.RemindersActivity
 
 /**
  * This class should be the starting point of the app, It asks the users to sign in / register, and redirects the
@@ -10,15 +15,52 @@ import com.udacity.project4.R
  */
 class AuthenticationActivity : AppCompatActivity() {
 
+    companion object {
+        private val TAG = AuthenticationActivity::class.java.simpleName
+        const val SIGN_IN_RESULT_CODE = 1001
+    }
+
+    private lateinit var binding : ActivityAuthenticationBinding
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_authentication)
-//         TODO: Implement the create account and sign in using FirebaseUI, use sign in using email and sign in using Google
+        binding = ActivityAuthenticationBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        binding.loginButton.setOnClickListener{
+            launchSignInFlow()
+        }
+    }
 
-//          TODO: If the user was authenticated, send him to RemindersActivity
+    private fun launchSignInFlow() {
+        // Choose authentication providers
+        val providers = arrayListOf(
+            AuthUI.IdpConfig.EmailBuilder().build(),
+            AuthUI.IdpConfig.GoogleBuilder().build()
+        )
 
-//          TODO: a bonus is to customize the sign in flow to look nice using :
-        //https://github.com/firebase/FirebaseUI-Android/blob/master/auth/README.md#custom-layout
+        // Create and launch sign-in intent
+        val signInIntent = AuthUI.getInstance()
+            .createSignInIntentBuilder()
+            .setAvailableProviders(providers)
+            .build()
 
+        startActivityForResult(signInIntent, SIGN_IN_RESULT_CODE)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == SIGN_IN_RESULT_CODE) {
+            val response = IdpResponse.fromResultIntent(data)
+            if (resultCode == RESULT_OK) {
+                // Successfully signed in
+                val intent = Intent(this, RemindersActivity::class.java)
+                startActivity(intent)
+            } else {
+                // Sign in failed. If response is null the user canceled the
+                // sign-in flow using the back button. Otherwise check
+                // response.getError().getErrorCode() and handle the error.
+                Log.i(TAG, "Sign in unsuccessful ${response?.error?.errorCode}")
+            }
+        }
     }
 }
