@@ -27,6 +27,7 @@ import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import kotlinx.android.synthetic.main.fragment_save_reminder.*
 import org.koin.android.ext.android.inject
+import java.util.*
 
 class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
@@ -78,6 +79,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         map = googleMap
         updateMapUISettings(true)
         getDeviceLocation()
+        setMapLongClick(map)
         setPoiClick(map)
         setMapStyle(map)
     }
@@ -105,9 +107,8 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                 }
             }
         } else {
-            ActivityCompat.requestPermissions(
-                requireActivity(),
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+            requestPermissions(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION),
                 REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE
             )
         }
@@ -179,8 +180,48 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         _viewModel.reminderSelectedLocationStr.value = poi.name
     }
 
+    private fun setMarker(snippet: String, latLng: LatLng) {
+        _viewModel.latitude.value = latLng.latitude
+        _viewModel.longitude.value = latLng.longitude
+        _viewModel.reminderSelectedLocationStr.value = snippet
+    }
+
     private fun isLocationPermissionGranted() : Boolean {
         return ActivityCompat.checkSelfPermission( requireContext(),
             Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray) {
+        if (requestCode == REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE) {
+            if (grantResults.isNotEmpty() && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                getDeviceLocation()
+            }
+        }
+    }
+
+    private fun setMapLongClick(map: GoogleMap) {
+        map.setOnMapLongClickListener { latLng ->
+            val snippet = String.format(
+                Locale.getDefault(),
+                "Lat: %1$.5f, Long: %2$.5f",
+                latLng.latitude,
+                latLng.longitude
+            )
+
+            poiMarker?.remove()
+            poiMarker = map.addMarker(
+                MarkerOptions()
+                    .position(latLng)
+                    .title(getString(R.string.dropped_pin))
+                    .snippet(snippet)
+            )
+
+            poiMarker?.showInfoWindow()
+            setMarker(snippet, latLng)
+            binding.saveButton.isEnabled = true
+        }
     }
 }

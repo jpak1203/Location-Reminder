@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.IdpResponse
+import com.google.firebase.auth.FirebaseAuth
 import com.udacity.project4.databinding.ActivityAuthenticationBinding
 import com.udacity.project4.locationreminders.RemindersActivity
 
@@ -28,6 +29,14 @@ class AuthenticationActivity : AppCompatActivity() {
         setContentView(binding.root)
         binding.loginButton.setOnClickListener{
             launchSignInFlow()
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (FirebaseAuth.getInstance().currentUser != null) {
+            val intent = Intent(this, RemindersActivity::class.java)
+            startActivity(intent)
         }
     }
 
