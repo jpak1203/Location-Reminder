@@ -1,13 +1,16 @@
 package com.udacity.project4
 
 import android.app.Application
+import android.view.View
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.espresso.Espresso.*
 import androidx.test.espresso.IdlingRegistry
 import androidx.test.espresso.action.ViewActions
-import androidx.test.espresso.assertion.ViewAssertions
-import androidx.test.espresso.matcher.ViewMatchers
+import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.RootMatchers.withDecorView
+import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import com.udacity.project4.locationreminders.RemindersActivity
@@ -21,6 +24,7 @@ import com.udacity.project4.util.DataBindingIdlingResource
 import com.udacity.project4.util.monitorActivity
 import com.udacity.project4.utils.EspressoIdlingResource
 import kotlinx.coroutines.runBlocking
+import org.hamcrest.CoreMatchers.not
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -32,6 +36,7 @@ import org.koin.dsl.module
 import org.koin.test.AutoCloseKoinTest
 import org.koin.test.get
 
+
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 //END TO END test to black box test the app
@@ -42,6 +47,7 @@ class RemindersActivityTest :
     private lateinit var appContext: Application
 
     private val dataBindingIdlingResource = DataBindingIdlingResource()
+    private lateinit var decorView: View
 
     /**
      * As we use Koin as a Service Locator Library to develop our code, we'll also use Koin to test our code.
@@ -97,12 +103,12 @@ class RemindersActivityTest :
         val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
         dataBindingIdlingResource.monitorActivity(activityScenario)
 
-        onView(ViewMatchers.withId(R.id.addReminderFAB)).perform(ViewActions.click())
-        onView(ViewMatchers.withId(R.id.saveReminder)).perform(ViewActions.click())
+        onView(withId(R.id.addReminderFAB)).perform(click())
+        onView(withId(R.id.saveReminder)).perform(click())
 
         val snackBarMessage = appContext.getString(R.string.err_enter_title)
-        onView(ViewMatchers.withText(snackBarMessage))
-            .check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
+        onView(withText(snackBarMessage))
+            .check(matches(isDisplayed()))
 
         activityScenario.close()
     }
@@ -124,40 +130,46 @@ class RemindersActivityTest :
         val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
         dataBindingIdlingResource.monitorActivity(activityScenario)
 
-        onView(ViewMatchers.withText(reminderDTO.title))
-            .check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
-        onView(ViewMatchers.withText(reminderDTO.description))
-            .check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
-        onView(ViewMatchers.withText(reminderDTO.location))
-            .check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
+        onView(withText(reminderDTO.title))
+            .check(matches(isDisplayed()))
+        onView(withText(reminderDTO.description))
+            .check(matches(isDisplayed()))
+        onView(withText(reminderDTO.location))
+            .check(matches(isDisplayed()))
 
         activityScenario.close()
     }
 
     @Test
-    fun addASampleReminder() = runBlocking {
+    fun addASampleReminder_checkToast() = runBlocking {
         val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        activityScenario.onActivity { activity ->
+            decorView = activity.window.decorView
+        }
         dataBindingIdlingResource.monitorActivity(activityScenario)
 
-        onView(ViewMatchers.withId(R.id.noDataTextView))
-            .check(ViewAssertions.matches(ViewMatchers.withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)))
-        onView(ViewMatchers.withId(R.id.addReminderFAB)).perform(ViewActions.click())
-        onView(ViewMatchers.withId(R.id.selectLocation)).perform(ViewActions.click())
-
-        onView(ViewMatchers.withId(R.id.saveReminder)).perform(ViewActions.click())
-        onView(ViewMatchers.withId(R.id.reminderTitle))
+        onView(withId(R.id.noDataTextView))
+            .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+        onView(withId(R.id.addReminderFAB)).perform(click())
+        onView(withId(R.id.reminderTitle))
             .perform(ViewActions.replaceText("Remember to brush your teeth"))
-        onView(ViewMatchers.withId(R.id.reminderDescription))
+        onView(withId(R.id.reminderDescription))
             .perform(ViewActions.replaceText("It's good for your teeth"))
+        onView(withId(R.id.selectLocation)).perform(click())
+        onView(withId(R.id.map)).perform(click())
+        onView(withId(R.id.save_button)).perform(click())
 
-        closeSoftKeyboard()
+        onView(withId(R.id.saveReminder)).perform(click())
 
-        onView(ViewMatchers.withId(R.id.saveReminder)).perform(ViewActions.click())
+        val toastMessage = appContext.getString(R.string.reminder_saved)
+        onView(withText(toastMessage))
+            .inRoot(withDecorView(not(decorView)))
+            .check(matches(isDisplayed()))
 
-        onView(ViewMatchers.withId(R.id.title))
-            .check(ViewAssertions.matches(ViewMatchers.withText("Remember to brush your teeth")))
-        onView(ViewMatchers.withId(R.id.description))
-            .check(ViewAssertions.matches(ViewMatchers.withText("It's good for your teeth")))
+        onView(withId(R.id.title))
+            .check(matches(withText("Remember to brush your teeth")))
+        onView(withId(R.id.description))
+            .check(matches(withText("It's good for your teeth")))
 
         activityScenario.close()
     }

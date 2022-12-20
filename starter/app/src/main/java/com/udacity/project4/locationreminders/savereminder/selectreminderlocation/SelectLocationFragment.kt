@@ -63,7 +63,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
-        binding.saveButton.isEnabled = false
         binding.saveButton.setOnClickListener {
             onLocationSelected()
         }
@@ -169,7 +168,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             poiMarker?.showInfoWindow()
 
             setMarker(poi)
-            binding.saveButton.isEnabled = true
         }
     }
 
@@ -221,7 +219,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
             poiMarker?.showInfoWindow()
             setMarker(snippet, latLng)
-            binding.saveButton.isEnabled = true
         }
     }
 }
