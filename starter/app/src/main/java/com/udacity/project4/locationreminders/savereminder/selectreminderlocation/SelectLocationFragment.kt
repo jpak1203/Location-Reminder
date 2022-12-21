@@ -20,6 +20,7 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.android.gms.tasks.CancellationTokenSource
+import com.google.android.material.snackbar.Snackbar
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
@@ -46,7 +47,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         binding =
             DataBindingUtil.inflate(inflater, R.layout.fragment_select_location, container, false)
 
@@ -76,7 +77,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
-        updateMapUISettings(true)
         getDeviceLocation()
         setMapLongClick(map)
         setPoiClick(map)
@@ -95,6 +95,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     @SuppressLint("MissingPermission")
     private fun getDeviceLocation() {
         if (isLocationPermissionGranted()) {
+            updateMapUISettings(true)
             val locationResult = fusedLocationProviderClient.getCurrentLocation(
                 LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY,
                 cancellationSource.token
@@ -195,8 +196,15 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         grantResults: IntArray) {
         if (requestCode == REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE) {
             if (grantResults.isNotEmpty() && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                updateMapUISettings(true)
                 getDeviceLocation()
             }
+        } else {
+            Snackbar.make(
+                requireView(),
+                getString(R.string.permission_denied_explanation),
+                Snackbar.LENGTH_INDEFINITE
+            ).show()
         }
     }
 
