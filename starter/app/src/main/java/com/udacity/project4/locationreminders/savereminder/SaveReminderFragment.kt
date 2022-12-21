@@ -7,7 +7,9 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -16,6 +18,7 @@ import androidx.databinding.DataBindingUtil
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.material.snackbar.Snackbar
+import com.udacity.project4.BuildConfig
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
@@ -86,13 +89,7 @@ class SaveReminderFragment : BaseFragment() {
 
             reminderData = ReminderDataItem(title, description, location, latitude, longitude)
 
-            if (!locationPermissionsApproved(requireContext())) {
-                checkLocationPermissions()
-            }
-
-            if (locationPermissionsApproved(requireContext())) {
-                checkDeviceLocationSettings(true)
-            }
+            checkLocationPermissions()
         }
     }
 
@@ -123,23 +120,6 @@ class SaveReminderFragment : BaseFragment() {
         super.onDestroy()
         //make sure to clear the view model after destroy, as it's a single view model.
         _viewModel.onClear()
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantedResults: IntArray
-    ){
-        super.onRequestPermissionsResult(requestCode, permissions, grantedResults)
-        if (
-            grantedResults.isNotEmpty() ||
-            grantedResults[LOCATION_PERMISSION_INDEX] == PackageManager.PERMISSION_GRANTED ||
-            (requestCode == REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE &&
-                    grantedResults[BACKGROUND_LOCATION_PERMISSION_INDEX] ==
-                    PackageManager.PERMISSION_GRANTED))
-        {
-            checkDeviceLocationSettings()
-        }
     }
 
     @TargetApi(29 )
@@ -173,8 +153,7 @@ class SaveReminderFragment : BaseFragment() {
             if (exception is ResolvableApiException && resolve){
                 try {
                     exception.startResolutionForResult(requireActivity(),
-                        REQUEST_TURN_DEVICE_LOCATION_ON
-                    )
+                        REQUEST_TURN_DEVICE_LOCATION_ON)
                 } catch (e: IntentSender.SendIntentException) {
                     Log.e(TAG, "location settings resolution error: %s", e.cause)
                 }
@@ -187,11 +166,21 @@ class SaveReminderFragment : BaseFragment() {
                 }.show()
             }
         }
-        locationSettingsResponseTask.addOnSuccessListener {
-            if (_viewModel.validateEnteredData(reminderData)) {
-                _viewModel.validateAndSaveReminder(reminderData)
-                saveGeofenceForLocationReminder(reminderData)
+        locationSettingsResponseTask.addOnCompleteListener {
+            Log.i(TAG, "on complete listener")
+            if (it.isSuccessful) {
+                if (_viewModel.validateEnteredData(reminderData)) {
+                    _viewModel.validateAndSaveReminder(reminderData)
+                    saveGeofenceForLocationReminder(reminderData)
+                }
             }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_TURN_DEVICE_LOCATION_ON) {
+            checkDeviceLocationSettings(false)
         }
     }
 
@@ -200,6 +189,34 @@ class SaveReminderFragment : BaseFragment() {
             checkDeviceLocationSettings()
         } else {
             requestForegroundAndBackgroundLocationPermissions()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        if (
+            grantResults.isEmpty() ||
+            grantResults[LOCATION_PERMISSION_INDEX] == PackageManager.PERMISSION_DENIED ||
+            (requestCode == REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE &&
+                    grantResults[BACKGROUND_LOCATION_PERMISSION_INDEX] ==
+                    PackageManager.PERMISSION_DENIED))
+        {
+            Snackbar.make(
+                requireView(),
+                R.string.permission_denied_explanation, Snackbar.LENGTH_INDEFINITE
+            )
+                .setAction(R.string.settings) {
+                    startActivity(Intent().apply {
+                        action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                        data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    })
+                }.show()
+        } else {
+            checkDeviceLocationSettings()
         }
     }
 }

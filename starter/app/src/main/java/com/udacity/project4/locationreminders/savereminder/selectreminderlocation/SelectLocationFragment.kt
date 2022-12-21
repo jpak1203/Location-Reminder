@@ -198,13 +198,14 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             if (grantResults.isNotEmpty() && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
                 updateMapUISettings(true)
                 getDeviceLocation()
+            } else {
+                Snackbar.make(
+                    requireView(),
+                    R.string.location_required_error, Snackbar.LENGTH_INDEFINITE
+                ).setAction(android.R.string.ok) {
+                    getDeviceLocation()
+                }.show()
             }
-        } else {
-            Snackbar.make(
-                requireView(),
-                getString(R.string.permission_denied_explanation),
-                Snackbar.LENGTH_INDEFINITE
-            ).show()
         }
     }
 
