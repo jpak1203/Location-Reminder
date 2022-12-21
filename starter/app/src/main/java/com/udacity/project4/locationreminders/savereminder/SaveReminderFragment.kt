@@ -169,7 +169,6 @@ class SaveReminderFragment : BaseFragment() {
             }
         }
         locationSettingsResponseTask.addOnCompleteListener {
-            Log.i(TAG, "on complete listener")
             if (it.isSuccessful) {
                 if (_viewModel.validateEnteredData(reminderData)) {
                     _viewModel.validateAndSaveReminder(reminderData)

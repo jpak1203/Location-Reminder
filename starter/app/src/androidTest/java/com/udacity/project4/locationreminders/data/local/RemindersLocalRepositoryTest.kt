@@ -1,11 +1,14 @@
 package com.udacity.project4.locationreminders.data.local
 
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
+import com.udacity.project4.MainCoroutineRule
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.dto.Result.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runBlockingTest
 import org.hamcrest.CoreMatchers.`is`
@@ -13,6 +16,7 @@ import org.hamcrest.CoreMatchers.notNullValue
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -26,6 +30,12 @@ class RemindersLocalRepositoryTest {
     private lateinit var remindersDAO: RemindersDao
     private lateinit var remindersLocalRepository: RemindersLocalRepository
 
+    @get:Rule
+    var instantExecutorRule = InstantTaskExecutorRule()
+
+    @get:Rule
+    var mainCoroutineRule = MainCoroutineRule()
+
     @Before
     fun setupDatabase() {
         remindersListDb = Room.inMemoryDatabaseBuilder(
@@ -37,7 +47,7 @@ class RemindersLocalRepositoryTest {
         remindersDAO = remindersListDb.reminderDao()
         remindersLocalRepository =
             RemindersLocalRepository(
-                remindersDAO
+                remindersDAO, Dispatchers.Main
             )
     }
 
@@ -47,7 +57,7 @@ class RemindersLocalRepositoryTest {
     }
 
     @Test
-    fun getReminder_saveReminder_shouldReturnReminder() = runBlockingTest {
+    fun getReminder_saveReminder_shouldReturnReminder() = mainCoroutineRule.runBlockingTest {
         //Given
         val reminderDTO = ReminderDTO(
             "title",
@@ -72,7 +82,7 @@ class RemindersLocalRepositoryTest {
     }
 
     @Test
-    fun getReminders_saveTwoReminders_shouldReturnCorrectSize() = runBlockingTest {
+    fun getReminders_saveTwoReminders_shouldReturnCorrectSize() = mainCoroutineRule.runBlockingTest {
         val reminder1 = ReminderDTO(
             "title",
             "description",
@@ -100,7 +110,7 @@ class RemindersLocalRepositoryTest {
     }
 
     @Test
-    fun getReminders_saveThenDelete_shouldBeEmpty() = runBlockingTest {
+    fun getReminders_saveThenDelete_shouldBeEmpty() = mainCoroutineRule.runBlockingTest {
         val reminderDTO = ReminderDTO(
             "title",
             "description",
@@ -119,7 +129,7 @@ class RemindersLocalRepositoryTest {
     }
 
     @Test
-    fun getReminder_withNoReminders_shouldReturnError() = runBlockingTest {
+    fun getReminder_withNoReminders_shouldReturnError() = mainCoroutineRule.runBlockingTest {
         val reminder = remindersLocalRepository.getReminder("random id") as Error
         val message = reminder.message
         assertThat(message, `is`(notNullValue()))
