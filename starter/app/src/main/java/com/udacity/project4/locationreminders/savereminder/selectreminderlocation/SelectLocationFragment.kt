@@ -8,7 +8,7 @@ import android.content.res.Resources
 import android.os.Bundle
 import android.util.Log
 import android.view.*
-import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import androidx.navigation.fragment.findNavController
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -65,7 +65,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         mapFragment.getMapAsync(this)
 
         binding.saveButton.setOnClickListener {
-            onLocationSelected()
+            findNavController().navigateUp()
         }
         return binding.root
     }
@@ -77,25 +77,17 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
-        getDeviceLocation()
         setMapLongClick(map)
         setPoiClick(map)
         setMapStyle(map)
-    }
-
-    private fun updateMapUISettings(granted: Boolean) {
-        try {
-            map.isMyLocationEnabled = granted
-            map.uiSettings.isMyLocationButtonEnabled = granted
-        } catch (e: SecurityException) {
-            Log.e("Exception: %s", e.message, e)
-        }
+        enableMyLocation()
     }
 
     @SuppressLint("MissingPermission")
-    private fun getDeviceLocation() {
+    private fun enableMyLocation() {
         if (isLocationPermissionGranted()) {
-            updateMapUISettings(true)
+            map.isMyLocationEnabled = true
+            map.uiSettings.isMyLocationButtonEnabled = true
             val locationResult = fusedLocationProviderClient.getCurrentLocation(
                 LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY,
                 cancellationSource.token
@@ -107,17 +99,14 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                 }
             }
         } else {
-            requestPermissions(arrayOf(
-                Manifest.permission.ACCESS_FINE_LOCATION),
+            requestPermissions(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ),
                 REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE
             )
         }
     }
-
-    private fun onLocationSelected() {
-        findNavController().navigateUp()
-    }
-
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.map_options, menu)
@@ -145,16 +134,17 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
 
     private fun setMapStyle(map: GoogleMap) {
         try {
-            map.setMapStyle(
+            val success = map.setMapStyle(
                 MapStyleOptions.loadRawResourceStyle(
                     requireContext(),
                     R.raw.map_style
                 )
             )
-        } catch (error: Resources.NotFoundException) {
-            error.message?.let {
-                Log.e(TAG,"Error Style: $it")
+            if (!success) {
+                Log.e(TAG, "Style parsing failed.")
             }
+        } catch (e: Resources.NotFoundException) {
+            Log.e(TAG, "Can't find style. Error: ", e)
         }
     }
 
@@ -186,7 +176,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     }
 
     private fun isLocationPermissionGranted() : Boolean {
-        return ActivityCompat.checkSelfPermission( requireContext(),
+        return ContextCompat.checkSelfPermission(requireContext(),
             Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
     }
 
@@ -196,14 +186,13 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         grantResults: IntArray) {
         if (requestCode == REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE) {
             if (grantResults.isNotEmpty() && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                updateMapUISettings(true)
-                getDeviceLocation()
+                enableMyLocation()
             } else {
                 Snackbar.make(
                     requireView(),
                     R.string.location_required_error, Snackbar.LENGTH_INDEFINITE
                 ).setAction(android.R.string.ok) {
-                    getDeviceLocation()
+                    enableMyLocation()
                 }.show()
             }
         }
