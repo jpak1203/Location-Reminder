@@ -69,7 +69,7 @@ class RemindersListViewModelTest {
     fun getRemindersViewModel_withNoData_shouldReturnError() = runBlockingTest {
         remindersDataSource.setReturnError(true)
         remindersViewModel.loadReminders()
-        assertThat(remindersViewModel.showSnackBar.value, `is`("Reminders not found"))
+        assertThat(remindersViewModel.showSnackBar.value, `is`("Test exception"))
     }
 
     @Test

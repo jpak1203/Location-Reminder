@@ -8,6 +8,7 @@ import androidx.test.espresso.Espresso.*
 import androidx.test.espresso.IdlingRegistry
 import androidx.test.espresso.action.ViewActions
 import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.action.ViewActions.longClick
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers.withDecorView
 import androidx.test.espresso.matcher.ViewMatchers.*
@@ -156,7 +157,7 @@ class RemindersActivityTest :
         onView(withId(R.id.reminderDescription))
             .perform(ViewActions.replaceText("It's good for your teeth"))
         onView(withId(R.id.selectLocation)).perform(click())
-        onView(withId(R.id.map)).perform(click())
+        onView(withId(R.id.map)).perform(longClick())
         onView(withId(R.id.save_button)).perform(click())
 
         onView(withId(R.id.saveReminder)).perform(click())

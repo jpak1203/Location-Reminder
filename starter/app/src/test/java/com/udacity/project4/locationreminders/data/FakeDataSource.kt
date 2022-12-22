@@ -8,7 +8,7 @@ import com.udacity.project4.locationreminders.data.dto.Result.Success
 //Use FakeDataSource that acts as a test double to the LocalDataSource
 class FakeDataSource : ReminderDataSource {
 
-    var reminderServiceData: LinkedHashMap<String, ReminderDTO> = LinkedHashMap()
+    private var reminderServiceData: LinkedHashMap<String, ReminderDTO> = LinkedHashMap()
 
     private var shouldReturnError = false
 
@@ -18,9 +18,13 @@ class FakeDataSource : ReminderDataSource {
 
     override suspend fun getReminders(): Result<List<ReminderDTO>> {
         if (shouldReturnError) {
-            return Error("Reminders not found")
+            return Error("Test exception")
         }
-        return Success(reminderServiceData.values.toList())
+        return try {
+            Success(reminderServiceData.values.toList())
+        } catch (ex: Exception) {
+            Error(ex.localizedMessage)
+        }
     }
 
     override suspend fun saveReminder(reminder: ReminderDTO) {
@@ -31,10 +35,16 @@ class FakeDataSource : ReminderDataSource {
         if (shouldReturnError) {
             return Error("Test exception")
         }
-        reminderServiceData[id]?.let {
-            return Success(it)
+        return try {
+            val reminder = reminderServiceData[id]
+            if (reminder != null) {
+                Success(reminder)
+            } else {
+                Error("Reminder not found!")
+            }
+        } catch (e: Exception) {
+            Error(e.localizedMessage)
         }
-        return Error("Could not find reminder")
     }
 
     override suspend fun deleteAllReminders() {
